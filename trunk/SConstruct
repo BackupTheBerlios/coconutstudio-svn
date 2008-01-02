@@ -24,6 +24,8 @@ opts.Add('optimize', 'Optimize (0|1).', 0)
 opts.Add('debug', 'Add debug symbols (0|1).', 1)
 opts.Add('prefix', 'The installation prefix', '/usr/local/')
 opts.Add('SDL','Enable SDL (0|1).',1)
+if (not win32):
+	opts.Add('jack','Enable JACK connection kit (0|1).',1)
 opts.Add('PNG','Enable LibPNG (0|1).',1)
 opts.Add('vst_enabled', 'Enable VST Support (win32 and win32_cross) (0|1).', 1)
 
@@ -105,7 +107,19 @@ if (env['PNG']):
                 exit(255);
 
 	env.ParseConfig('pkg-config libpng --cflags --libs')
-        
+       
+
+# JACK
+
+if (not win32 and not win32_cross and env['jack']):
+
+	errorval=os.system("pkg-config jack --modversion");
+
+        if (errorval):
+                print "Error: cant execute pkg-config to check for JACK, make sure pkg-config and JACK are installed";
+                exit(255);
+
+	env.ParseConfig('pkg-config jack --cflags --libs')
 
 # Common Variables        
 
@@ -126,8 +140,8 @@ if (not win32_msvc):
 
 # Libraties to be generated
 
-env.Append(LIBS=['drivers','engine','types']);
-env.Append(LIBPATH=['#drivers','#engine','#types']);
+env.Append(LIBS=['drivers','editor','engine','types']);
+env.Append(LIBPATH=['#drivers','#editor','#engine','#types']);
 
 env.__class__.find_source_files = find_source_files
 
@@ -139,6 +153,7 @@ Export('env');
 
 SConscript('types/SCsub');
 SConscript('engine/SCsub');
+SConscript('editor/SCsub');
 SConscript('drivers/SCsub');
 SConscript('gui/SCsub');
 SConscript('bin/SCsub');

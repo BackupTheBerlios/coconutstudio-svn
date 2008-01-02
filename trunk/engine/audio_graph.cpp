@@ -137,26 +137,15 @@ AudioNode* AudioGraph::get_node(int p_index) {
 	return nodes[p_index];
 }
 
-void AudioGraph::add_node(AudioNode *p_node,std::list<AudioConnection> *p_node_connections) {
+void AudioGraph::add_node(AudioNode *p_node,int p_at_index) {
 
 	AudioControl::mutex_lock();
 	
-	nodes.push_back(p_node);
-	
-	if (p_node_connections) {
+	if (p_at_index<0 || p_at_index>=nodes.size())
+		nodes.push_back(p_node);
+	else
+		nodes.insert( nodes.begin() + p_at_index, p_node );
 		
-		for(std::list<AudioConnection>::iterator I=p_node_connections->begin() ; I!=p_node_connections->end();I++) {
-			
-			if (I->from_node==-1)
-				I->from_node=nodes.size()-1;
-			if (I->to_node==-1)
-				I->to_node=nodes.size()-1;
-			
-			ConnectError cerr = connect( *I );
-			ERR_CONTINUE( cerr );
-		}
-		
-	}
 	
 	recompute_process_order();
 	recompute_graph();
@@ -182,48 +171,11 @@ static bool index_adjust(int &p_index,int p_deleted) {
 	return false;
 }
 
-void AudioGraph::erase_node(int p_index,std::list<AudioConnection> *p_connections_lost) {
+void AudioGraph::erase_node(int p_index) {
 
 	ERR_FAIL_INDEX(p_index,(int)nodes.size());
 
-	AudioControl::mutex_lock();
-	
-	int i=0;
-	/* simple algorithm for erasing nodes */	
-	
-	
-	/* Erase connections with that node */
-	while (i<(int)connections.size()) {
-	
-		bool from_erased=false;
-		bool to_erased=false;
-		
-		if (index_adjust(connections[i].from_node,p_index))
-			from_erased=true;
-		if (index_adjust(connections[i].to_node,p_index))
-			to_erased=true;
-			
-		if (from_erased || to_erased) {
-			
-			/* this connection was lost, report loss if asked to */
-			/* This is useful if we want to undo or redo the action */
-			
-			if (p_connections_lost) { //want report of connections lost?
-				
-				AudioConnection lost_conn=connections[i];
-				if (from_erased) 
-					lost_conn.from_node=-1; //means it connected FROM this
-				if (to_erased) 
-					lost_conn.to_node=-1; //means it connected TO this
-					
-				p_connections_lost->push_back(lost_conn);			
-			}
-			connections.erase( connections.begin() + i );
-			
-			ERR_CONTINUE(from_erased && to_erased); //should never happen!
-		} else
-			i++;
-	}
+	AudioControl::mutex_lock();	
 	
 	/* erase node */
 	nodes.erase( nodes.begin() + p_index );
@@ -330,6 +282,37 @@ void AudioGraph::disconnect(const AudioConnection& p_connection) {
 	AudioControl::mutex_unlock();
 	
 }
+
+
+bool AudioGraph::has_connection(const AudioConnection& p_connection) {
+
+	for (int i=0;i<connections.size();i++)
+		if (p_connection==connections[i])
+			return true;
+			
+	return false;
+}
+
+bool AudioGraph::can_connect(const AudioConnection& p_connection) {
+
+	if (has_connection(p_connection))
+		return false;
+		
+	AudioControl::mutex_lock();
+	
+	ConnectError ce = connect( p_connection );
+	
+	if (ce==CONNECT_OK) {
+	
+		disconnect( p_connection );
+	}
+	
+	AudioControl::mutex_unlock();
+	
+	return (ce==CONNECT_OK);
+
+}
+
 
 int AudioGraph::get_connection_count() {
 

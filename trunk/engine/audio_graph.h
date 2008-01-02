@@ -56,9 +56,8 @@ public:
 	 * Add a node to the Audio Graph.
 	 * A list of connections can be optionally set. This is useful for Undo/Redo operations, as well sound driver switching.
 	 * @param p_node Audio Node
-	 * @param p_node_connections AudioConnections to be set to this node upon creation (NULL for none)
 	 */
-	void add_node(AudioNode *p_node,std::list<AudioConnection> *p_node_connections=NULL);
+	void add_node(AudioNode *p_node,int p_at_index=-1);
 	/**
 	 * Remove a node from the Audio Graph
 	 * A list of connections that the node had before being deleted can be optionally retrieved. 
@@ -66,7 +65,7 @@ public:
 	 * @param p_index Node Index
 	 * @param p_connections_lost AudioConnections that will be lost upon deleting (NULL for not retrieving)
 	 */
-	void erase_node(int p_index,std::list<AudioConnection> *p_connections_lost=NULL);
+	void erase_node(int p_index);
 	
 	/**
 	 *  Make a connection between too nodes, from an OUTPUT port to an INPUT port.
@@ -79,6 +78,10 @@ public:
 	
 	void disconnect(const AudioConnection& p_connection);
 	
+	bool has_connection(const AudioConnection& p_connection);
+	
+	bool can_connect(const AudioConnection& p_connection);
+
 	/**
 	 * Get the last error code from a call to connect()
 	 * @return CONNECT_OK (equal zero) or a ConnectError otherwise
