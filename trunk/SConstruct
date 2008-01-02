@@ -140,8 +140,8 @@ if (not win32_msvc):
 
 # Libraties to be generated
 
-env.Append(LIBS=['drivers','editor','engine','types']);
-env.Append(LIBPATH=['#drivers','#editor','#engine','#types']);
+env.Append(LIBS=['drivers','editor','engine','gui','types']);
+env.Append(LIBPATH=['#drivers','#editor','#engine','#gui','#types']);
 
 env.__class__.find_source_files = find_source_files
 
