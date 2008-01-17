@@ -12,6 +12,15 @@
 #include "edit_commands.h"
 
 
+EditCommands *EditCommands::singleton=NULL;
+
+
+EditCommands *EditCommands::get_singleton() {
+
+	return singleton;
+
+}
+
 /****************************/
 /**** AUDIO GRAPH FUNCS *****/
 /****************************/
@@ -83,9 +92,9 @@ void EditCommands::audio_graph_connect(AudioGraph *p_graph,const AudioConnection
 /**** AUDIO DRIVER PORT *****/
 /****************************/
 
-void EditCommands::_audio_driver_add_port(AudioGraph *p_graph,AudioDriver *p_driver,AudioDriverPortCreateData p_create_data) {
+void EditCommands::_audio_driver_add_node(AudioGraph *p_graph,AudioDriver *p_driver,AudioDriverPortCreateData p_create_data) {
 
-	ERR_FAIL_INDEX(p_create_data.index,p_driver->get_port_count()+1);
+	ERR_FAIL_INDEX(p_create_data.index,p_driver->get_node_count()+1);
 
 
 	if (p_create_data.type==AudioDriver::TYPE_AUDIO) {
@@ -102,11 +111,12 @@ void EditCommands::_audio_driver_add_port(AudioGraph *p_graph,AudioDriver *p_dri
 			p_driver->add_event_output(p_create_data.index);
 	}
 
+	printf("request add at index %i\n",p_create_data.index);
 	p_graph->add_node( p_driver->get_node( p_create_data.index ), p_create_data.graph_index );
 	
 }
 
-void EditCommands::_audio_driver_remove_port(AudioGraph *p_graph,AudioDriver *p_driver,int p_at_index) {
+void EditCommands::_audio_driver_remove_node(AudioGraph *p_graph,AudioDriver *p_driver,int p_at_index) {
 
 	ERR_FAIL_INDEX(p_at_index,p_driver->get_node_count());
 	
@@ -121,12 +131,12 @@ void EditCommands::_audio_driver_remove_port(AudioGraph *p_graph,AudioDriver *p_
 	p_driver->erase_node(p_at_index);
 }
 
-void EditCommands::audio_driver_add_port(AudioGraph *p_graph,AudioDriver *p_driver,AudioDriver::NodeType p_type, int p_chans,bool p_input,int p_at_index) {
+void EditCommands::audio_driver_add_node(AudioGraph *p_graph,AudioDriver *p_driver,AudioDriver::NodeType p_type, int p_chans,bool p_input,int p_at_index) {
 
 	if (p_at_index<0)
-		p_at_index=p_driver->get_port_count();
-	if (p_at_index>p_driver->get_port_count())
-		p_at_index=p_driver->get_port_count();
+		p_at_index=p_driver->get_node_count();
+	if (p_at_index>p_driver->get_node_count())
+		p_at_index=p_driver->get_node_count();
 		
 	AudioDriverPortCreateData pcd;
 	pcd.chans=p_chans;
@@ -135,15 +145,15 @@ void EditCommands::audio_driver_add_port(AudioGraph *p_graph,AudioDriver *p_driv
 	pcd.index=p_at_index;
 	pcd.graph_index=-1;
 		
-	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_add_port, p_graph, p_driver, pcd ); 
-	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_remove_port, p_graph, p_driver, p_at_index ); 
+	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_add_node, p_graph, p_driver, pcd ); 
+	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_remove_node, p_graph, p_driver, p_at_index ); 
 
 
 	add_action( "Sound Driver - Add Port",cmd_do, cmd_undo );
 	
 }
 
-void EditCommands::audio_driver_remove_port(AudioGraph *p_graph,AudioDriver *p_driver,int p_index) {
+void EditCommands::audio_driver_remove_node(AudioGraph *p_graph,AudioDriver *p_driver,int p_index) {
 
 	ERR_FAIL_INDEX(p_index,p_driver->get_node_count());
 	
@@ -189,11 +199,11 @@ void EditCommands::audio_driver_remove_port(AudioGraph *p_graph,AudioDriver *p_d
 	
 	audio_graph_clear_all_node_connections(p_graph,pcd.graph_index);
 	
-	/* Remove port */
+	/* Remove node */
 	
 
-	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_remove_port, p_graph, p_driver, p_index ); 
-	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_add_port, p_graph, p_driver, pcd ); 
+	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_remove_node, p_graph, p_driver, p_index ); 
+	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_add_node, p_graph, p_driver, pcd ); 
 
 	add_action( "Sound Driver - Remove Port",cmd_do, cmd_undo );
 	
@@ -201,9 +211,31 @@ void EditCommands::audio_driver_remove_port(AudioGraph *p_graph,AudioDriver *p_d
 
 }
 
+void EditCommands::_audio_driver_set_node_name(AudioDriver *p_driver,int p_node,String p_name) {
 
-EditCommands::EditCommands()
-{
+	ERR_FAIL_INDEX(p_node,p_driver->get_node_count());
+	
+	p_driver->set_node_name(p_node,p_name);
+
+}
+
+void EditCommands::audio_driver_set_node_name(AudioDriver *p_driver,int p_node,String p_name) {
+
+	ERR_FAIL_INDEX(p_node,p_driver->get_node_count());
+	
+	printf("setting name to %i - %ls\n",p_node,p_name.c_str());
+	String name = p_driver->get_node(p_node)->get_name();
+	
+	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_set_node_name, p_driver, p_node,p_name ); 
+	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_set_node_name, p_driver, p_node,name ); 
+	
+	add_action("Sound Driver - Change Port Name",cmd_do,cmd_undo);
+}
+
+EditCommands::EditCommands() {
+
+	ERR_FAIL_COND(singleton);
+	singleton=this;
 }
 
 

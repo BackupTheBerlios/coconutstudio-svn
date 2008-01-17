@@ -359,3 +359,7 @@ AudioGraph::AudioGraph() {
 	last_error=CONNECT_OK;
 	graph_order_valid=false;
 }
+
+AudioGraph::~AudioGraph() {
+
+}

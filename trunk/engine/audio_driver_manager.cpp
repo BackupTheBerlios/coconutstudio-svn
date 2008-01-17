@@ -16,12 +16,30 @@
 AudioDriver* AudioDriverManager::audio_drivers[MAX_AUDIO_DRIVERS];
 int AudioDriverManager::audio_driver_count=0;
 int AudioDriverManager::current_driver=-1;
+AudioGraph * AudioDriverManager::audio_graph=NULL;
 	
-	
+void AudioDriverManager::set_audio_graph(AudioGraph *p_graph) {
+
+	audio_graph=p_graph;
+	for (int i=0;i<audio_driver_count;i++) {
+		
+		audio_drivers[i]->set_audio_graph(audio_graph);
+	}
+}
+
+AudioGraph * AudioDriverManager::get_audio_graph() {
+
+	return audio_graph;
+}
+
+
 void AudioDriverManager::add_driver(AudioDriver *p_audio_driver) {
 
 	ERR_FAIL_COND(audio_driver_count>=MAX_AUDIO_DRIVERS);
 	audio_drivers[audio_driver_count++]=p_audio_driver;
+	printf("added driver, %i drivers\n",audio_driver_count);
+	if (audio_graph)
+		p_audio_driver->set_audio_graph(audio_graph);
 }
 
 void AudioDriverManager::set_current(int p_index) {

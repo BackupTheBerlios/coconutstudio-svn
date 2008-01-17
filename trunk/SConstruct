@@ -120,6 +120,7 @@ if (not win32 and not win32_cross and env['jack']):
                 exit(255);
 
 	env.ParseConfig('pkg-config jack --cflags --libs')
+	env.Append(CPPFLAGS=['-DJACK_ENABLED']);
 
 # Common Variables        
 
@@ -140,8 +141,8 @@ if (not win32_msvc):
 
 # Libraties to be generated
 
-env.Append(LIBS=['drivers','editor','engine','gui','types']);
-env.Append(LIBPATH=['#drivers','#editor','#engine','#gui','#types']);
+env.Append(LIBS=['drivers','gui_app','gui_common','editor','engine','gui','types']);
+env.Append(LIBPATH=['#drivers','#gui_app','#gui_common','#editor','#engine','#gui','#types']);
 
 env.__class__.find_source_files = find_source_files
 
@@ -156,6 +157,8 @@ SConscript('engine/SCsub');
 SConscript('editor/SCsub');
 SConscript('drivers/SCsub');
 SConscript('gui/SCsub');
+SConscript('gui_common/SCsub');
+SConscript('gui_app/SCsub');
 SConscript('bin/SCsub');
 
 

@@ -12,6 +12,8 @@
 #ifndef AUDIO_DRIVER_JACK_H
 #define AUDIO_DRIVER_JACK_H
 
+#ifdef JACK_ENABLED
+
 #include "engine/audio_driver.h"
 #include <vector>
 #include <jack/jack.h>
@@ -29,6 +31,7 @@ class AudioDriverJACK : public AudioDriver {
 		std::vector<jack_port_t*> jack_ports;
 		std::vector<float*> audio_buffers;
 		MusicEvent* event_buffer;
+		String connected_to;
 		
 		/* Audio Port API */
 		
@@ -64,7 +67,7 @@ class AudioDriverJACK : public AudioDriver {
 		
 		/* AudioNode Info */
 		
-		virtual String get_node_name() const;
+		virtual String get_name() const;
 		
 		/* Process */
 		
@@ -102,6 +105,8 @@ class AudioDriverJACK : public AudioDriver {
 
 	void add_node(int p_chans,int p_at_index,NodeType p_type,bool p_input);
 
+	AudioGraph * audio_graph;
+
 public:
 
 	/* Input and Output Nodes */
@@ -110,6 +115,7 @@ public:
 	
 	virtual AudioNode *get_node(int p_index);
 	virtual NodeType get_node_type(int p_index) const;
+	virtual void set_node_name(int p_index,String p_name);
 	
 	virtual void add_audio_input(int p_chans,int p_at_index=-1);
 	virtual void add_event_input(int p_chans);
@@ -117,6 +123,10 @@ public:
 	virtual void add_event_output(int p_chans);
 	
 	virtual void erase_node(int p_index);
+				
+	virtual String get_node_external_connection(int p_index) const;
+	virtual void connect_node_to_external(int p_index,String p_to);
+	virtual std::list<String> get_connectable_external_list(NodeType p_type,bool p_input,int p_channels) const;
 				
 	/* ports used for settings */
 		
@@ -139,8 +149,14 @@ public:
 	virtual void lock();
 	virtual void unlock();
 			
+	/* Audio Graph */
+	
+	void set_audio_graph(AudioGraph * p_audio_graph);
+
+			
 	AudioDriverJACK();
 	~AudioDriverJACK();
 };
 
+#endif
 #endif

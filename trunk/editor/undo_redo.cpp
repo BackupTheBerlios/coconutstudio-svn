@@ -20,8 +20,9 @@ void UndoRedo::end_group() {
 
 }
 
-void UndoRedo::add_action(String p_description,CommandBase *p_undo_method, CommandBase *p_redo_method) {
+void UndoRedo::add_action(String p_description,CommandBase *p_do_method, CommandBase *p_undo_method) {
 
+	p_do_method->call();
 
 }
 

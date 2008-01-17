@@ -103,6 +103,16 @@ static inline float undenormalise(volatile float f)
 	return (v.i & 0x7f800000) < 0x08000000 ? 0.0f : f;
 }
 
+static inline const char * get_chan_name(int p_channels) {
+
+ 	static const char* chan_names[9]={"None","Mono","Stereo","3","Quad","5","6","7","8"};
+ 	if (p_channels<0)
+ 		p_channels=0;
+ 	if (p_channels>8)
+ 		p_channels=8;
+ 	return chan_names[p_channels];
+
+}
 
 #ifdef WIN32_ENABLED
 

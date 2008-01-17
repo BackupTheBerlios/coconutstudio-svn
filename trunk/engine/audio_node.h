@@ -72,7 +72,7 @@ public:
 	
 	/* AudioNode Info */
 	
-	virtual String get_node_name() const=0;
+	virtual String get_name() const=0;
 	
 	/* Process */
 	

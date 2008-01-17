@@ -164,7 +164,7 @@ protected:
 
 	void begin_group(String p_name);
 	void end_group();
-	void add_action(String p_description,CommandBase *p_undo_method, CommandBase *p_redo_method);
+	void add_action(String p_description,CommandBase *p_do_method, CommandBase *p_undo_method);
 
 private:
 

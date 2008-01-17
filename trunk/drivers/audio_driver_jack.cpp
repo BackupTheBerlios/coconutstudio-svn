@@ -9,14 +9,31 @@
 // Copyright: See COPYING file that comes with this distribution
 //
 //
+
+#ifdef JACK_ENABLED
+
 #include "audio_driver_jack.h"
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <map>
 #include "error_macros.h"
 
+
+void AudioDriverJACK::set_node_name(int p_index,String p_name) {
+
+	ERR_FAIL_INDEX(p_index,ports.size());
+	ports[p_index]->name=p_name;
+
+}
+
+
+void AudioDriverJACK::set_audio_graph(AudioGraph * p_audio_graph) {
+
+	audio_graph=p_audio_graph;
+}
 
 int AudioDriverJACK::JackNode::get_in_audio_port_count() const {
 
@@ -133,7 +150,7 @@ void AudioDriverJACK::JackNode::connect_out_event_port_buffer(int p_port,MusicEv
 
 /* AudioNode Info */
 
-String AudioDriverJACK::JackNode::get_node_name() const  {
+String AudioDriverJACK::JackNode::get_name() const  {
 
 	return name;
 }
@@ -248,7 +265,7 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 	
 	const char **result,**iter;
 	
-	result = jack_get_ports (client, NULL, (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE,JackPortIsPhysical|(p_input?JackPortIsInput:JackPortIsOutput));
+	result = jack_get_ports (client, NULL, (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE,JackPortIsPhysical|(p_input?JackPortIsOutput:JackPortIsInput));
 	
 	
 	if (result) {
@@ -285,12 +302,17 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 		}
 		
 		
+		jn->connected_to="";
 		for(int i=0;i<unclaimed_ports.size();i++) {
 		
 			if (i>=jn->jack_ports.size())
 				break;
 			
+			if (jn->connected_to!="")
+				jn->connected_to+=",";
+			
 			jack_connect(client, jack_port_name(jn->jack_ports[i]), unclaimed_ports[i]);
+			jn->connected_to+=unclaimed_ports[i];
 			
 		}
 		
@@ -302,8 +324,10 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 	
 	if (p_at_index<0 || p_at_index>=ports.size()) {
 		ports.push_back(jn);
+		printf("adding at index END\n");
 	} else {
 	
+		printf("adding at index %i\n",p_at_index);
 		std::vector<JackNode*>::iterator I=ports.begin();
 		I+=p_at_index;
 		ports.insert(I,jn);
@@ -358,6 +382,90 @@ void AudioDriverJACK::erase_node(int p_index){
 
 }
 	
+String AudioDriverJACK::get_node_external_connection(int p_index) const {
+
+	ERR_FAIL_INDEX_V(p_index,ports.size(),"");
+
+	return ports[p_index]->connected_to;
+}
+
+void AudioDriverJACK::connect_node_to_external(int p_index,String p_to) {
+
+
+}
+
+std::list<String> AudioDriverJACK::get_connectable_external_list(NodeType p_type,bool p_input,int p_channels) const {
+
+	if (p_type==TYPE_EVENT)
+		p_channels=1;
+		
+	std::list<String> clist;
+	
+	if (!active)
+		return clist;
+	
+	const char **result;
+	
+	//JackPortIsPhysical| ?
+	result = jack_get_ports (client, NULL, (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE,(p_input?JackPortIsOutput:JackPortIsInput));
+
+	typedef std::map< String, std::vector<String> > PortMap;
+	
+	PortMap port_map;
+
+
+	if (result) {
+	
+		const char **iter=result;
+		
+		while(*iter) {
+			
+			String portname = *iter;
+			if (portname.find(":")!=-1) {
+			
+				String port = portname.get_slice(":",0);
+				String plug = portname.get_slice(":",1);
+			
+				PortMap::iterator I = port_map.find(port);
+				
+				if (I==port_map.end()) {
+				
+					port_map[port]=std::vector<String>();
+				}
+				
+				port_map[port].push_back(plug);
+			
+			}			
+			
+			iter++;
+		}	
+		free(result);	
+	}	
+	
+	PortMap::iterator I=port_map.begin();
+	
+	for(;I!=port_map.end();I++) {
+	
+		std::vector<String> &vec=I->second;
+	
+		printf("vec size %i, channels %i\n",vec.size(),p_channels);
+		for(int i=0;i<(vec.size()/p_channels);i++) {
+					
+			String portname;
+			
+			for(int j=0;j<p_channels;j++) {
+				
+				if (j>0)
+					portname+=",";
+				portname+=I->first+":"+vec[i*p_channels+j];	
+			}
+			
+			clist.push_back(portname);
+		}
+	}
+	
+	return clist;	
+}
 	
 /* ports used for settings */
 	
@@ -415,9 +523,9 @@ bool AudioDriverJACK::init() {
         }
 
 	/* Set Callbacks */
-	jack_set_process_callback (client, _process, 0);
-        jack_set_sample_rate_callback (client, _srate, 0);
-        jack_on_shutdown (client, _shutdown, 0);
+	jack_set_process_callback (client, _process, this);
+        jack_set_sample_rate_callback (client, _srate, this);
+        jack_on_shutdown (client, _shutdown, this);
 
 	if (jack_activate (client)) {
 		error_text="Cannot activate client.";
@@ -473,6 +581,7 @@ AudioDriverJACK::AudioDriverJACK() {
 	hw_audio_out_count=0;
 	hw_event_in_count=0;
 	hw_event_out_count=0;
+	audio_graph=0;
 
 }
 
@@ -488,3 +597,4 @@ AudioDriverJACK::~AudioDriverJACK() {
 }
 
 
+#endif

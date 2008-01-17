@@ -13,6 +13,7 @@
 #define AUDIO_DRIVER_H
 
 #include "engine/audio_node.h"
+#include "engine/audio_graph.h"
 /**
 	@author Juan Linietsky <reduzio@gmail.com>
 */
@@ -29,6 +30,9 @@ public:
 	
 	virtual AudioNode *get_node(int p_index)=0;
 	virtual NodeType get_node_type(int p_index) const=0;
+	bool is_node_input(int p_index); // helper
+	int get_node_channels(int p_index); // helper
+	virtual void set_node_name(int p_index,String p_name) =0;
 	
 	virtual void add_audio_input(int p_chans,int p_at_index=-1)=0;
 	virtual void add_event_input(int p_at_index=-1)=0;
@@ -36,6 +40,10 @@ public:
 	virtual void add_event_output(int p_at_index=-1)=0;
 	
 	virtual void erase_node(int p_index)=0;
+				
+	virtual String get_node_external_connection(int p_index) const=0;
+	virtual void connect_node_to_external(int p_index,String p_to)=0;
+	virtual std::list<String> get_connectable_external_list(NodeType p_type,bool p_input,int p_channels) const=0;
 				
 	/* ports used for settings */
 		
@@ -58,7 +66,7 @@ public:
 	virtual void lock()=0;
 	virtual void unlock()=0;
 
-			
+	virtual void set_audio_graph(AudioGraph * p_audio_graph)=0;
 		
 	AudioDriver();
 	virtual ~AudioDriver();
