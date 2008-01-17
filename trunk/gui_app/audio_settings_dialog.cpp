@@ -258,7 +258,9 @@ void AudioSettingsDialog::node_request_edit(int, Rect p_rect, int p_node) {
 	
 	for (;I!=connectable.end();I++) {
 	
-		Method method( Method1<int>( Method2<int,String>(this,&AudioSettingsDialog::node_connect), *I) , p_node );
+		Method2<int,String> m2=Method2<int,String>(this,&AudioSettingsDialog::node_connect);
+		Method1<int> m1=Method1<int>( Method2<int,String>(this,&AudioSettingsDialog::node_connect), *I);
+		Method method( m1 , p_node );
 		
 		connect_node_popup->add_item(*I,method);
 		
