@@ -238,6 +238,7 @@ void AudioSettingsDialog::node_connect(int p_node, String p_to) {
 	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
 	ERR_FAIL_COND(!ad);
 	ad->connect_node_to_external(p_node,p_to);
+	update_node_tree();
 	
 }
 
