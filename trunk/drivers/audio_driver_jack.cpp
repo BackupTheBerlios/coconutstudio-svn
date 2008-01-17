@@ -391,6 +391,22 @@ String AudioDriverJACK::get_node_external_connection(int p_index) const {
 
 void AudioDriverJACK::connect_node_to_external(int p_index,String p_to) {
 
+	ERR_FAIL_INDEX(p_index,ports.size());
+	
+	ERR_FAIL_COND(p_to.get_slice_count(",")!=p_index);
+	
+	/* disconnect all first */
+	for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
+	
+		jack_port_disconnect( client,ports[p_index]->jack_ports[i]);
+	}
+	/* connect */
+	for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
+	
+		String dest=p_to.get_slice(",",i);
+		jack_connect(client, jack_port_name(ports[p_index]->jack_ports[i]), dest.ascii().get_data());
+	}
+	
 
 }
 

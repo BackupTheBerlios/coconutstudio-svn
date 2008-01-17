@@ -233,6 +233,15 @@ void AudioSettingsDialog::update_node_tree() {
 
 }
 
+void AudioSettingsDialog::node_connect(int p_node, String p_to) {
+
+	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
+	ERR_FAIL_COND(!ad);
+	ad->connect_node_to_external(p_node,p_to);
+	
+}
+
+
 void AudioSettingsDialog::node_request_edit(int, Rect p_rect, int p_node) {
 
 	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
@@ -248,7 +257,9 @@ void AudioSettingsDialog::node_request_edit(int, Rect p_rect, int p_node) {
 	
 	for (;I!=connectable.end();I++) {
 	
-		connect_node_popup->add_item(*I);
+		Method method( Method1<int>( Method2<int,String>(this,&AudioSettingsDialog::node_connect), *I) , p_node );
+		
+		connect_node_popup->add_item(*I,method);
 		
 	}
 	

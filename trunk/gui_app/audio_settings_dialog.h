@@ -55,6 +55,7 @@ class AudioSettingsDialog : public Window {
 	PopUpMenu *connect_node_popup;
 	
 	void node_request_edit(int, Rect p_rect, int p_node);
+	void node_connect(int, String p_to);	
 	
 public:
 
