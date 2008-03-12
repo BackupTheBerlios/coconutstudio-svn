@@ -23,23 +23,13 @@ class AudioGraphProcess {
 	
 	struct AudioBuffer {
 	
-		int chans;
 		std::vector< std::vector<float> > buffer; // buffer for each chan
-		
-		void create(int p_chans) {
-		
-			buffer.resize(p_chans);
-			for (int i=0;i<p_chans;i++)
-				buffer[i].resize( AUDIO_BUFFER_SIZE );
 				
-			chans=p_chans;
-		}
-		
 		void connect_in(AudioNode *p_node,int p_port) {
 		
-			ERR_FAIL_COND( p_node->get_in_audio_port_count() != chans );
 			ERR_FAIL_INDEX( p_port, p_node->get_in_audio_port_count() );
-			for (int i=0;i<chans;i++) {
+			ERR_FAIL_COND( p_node->get_in_audio_port_channel_count(p_port) != buffer.size() );
+			for (int i=0;i<buffer.size();i++) {
 			
 				p_node->connect_in_audio_port_channel_buffer( p_port,i, &buffer[i][0] );
 			}
@@ -47,9 +37,10 @@ class AudioGraphProcess {
 		
 		void connect_out(AudioNode *p_node,int p_port) {
 		
-			ERR_FAIL_COND( p_node->get_out_audio_port_count() != chans );
 			ERR_FAIL_INDEX( p_port, p_node->get_out_audio_port_count() );
-			for (int i=0;i<chans;i++) {
+			ERR_FAIL_COND( p_node->get_out_audio_port_channel_count(p_port) != buffer.size() );
+			
+			for (int i=0;i<buffer.size();i++) {
 			
 				p_node->connect_out_audio_port_channel_buffer( p_port,i, &buffer[i][0] );
 			}
@@ -60,7 +51,7 @@ class AudioGraphProcess {
 			ERR_FAIL_INDEX(p_frames,AUDIO_BUFFER_SIZE);
 			
 			
-			for (int i=0;i<chans;i++) {
+			for (int i=0;i<buffer.size();i++) {
 			
 				float *buf=&buffer[i][0];
 				for (int j=0;j<p_frames;j++)
@@ -72,10 +63,10 @@ class AudioGraphProcess {
 		inline void add_from(AudioBuffer *p_src,int p_frames=AUDIO_BUFFER_SIZE) {
 		
 			ERR_FAIL_INDEX(p_frames,AUDIO_BUFFER_SIZE);
-			ERR_FAIL_COND(chans!=p_src->chans);
+			ERR_FAIL_COND(buffer.size()!=p_src->buffer.size());
 			
 			
-			for (int i=0;i<chans;i++) {
+			for (int i=0;i<buffer.size();i++) {
 			
 				float *dst_buf=&buffer[i][0];
 				float *src_buf=&p_src->buffer[i][0];
@@ -86,8 +77,14 @@ class AudioGraphProcess {
 		
 		}
 		
-		AudioBuffer() { chans=0; }
 		
+		AudioBuffer(int p_chans) {
+		
+			buffer.resize(p_chans);
+			for (int i=0;i<buffer.size();i++)
+				buffer[i].resize( AUDIO_BUFFER_SIZE );				
+		
+		}
 	};
 	
 	

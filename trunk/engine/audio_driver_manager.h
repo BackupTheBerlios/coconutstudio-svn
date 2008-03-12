@@ -36,6 +36,7 @@ public:
 
 	static void add_driver(AudioDriver *p_audio_driver);
 
+	static int get_driver_count();
 	static void set_current(int p_index);
 	static int get_current();
 	static AudioDriver *get_driver(int p_index);

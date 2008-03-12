@@ -20,8 +20,8 @@ bool AudioDriver::is_node_input(int p_index)  {
 	
 	switch( get_node_type(p_index) ) {
 	
-		case TYPE_AUDIO: return an->get_in_audio_port_count(); break;
-		case TYPE_EVENT: return an->get_in_event_port_count();  break;
+		case TYPE_AUDIO: return an->get_out_audio_port_count(); break;
+		case TYPE_EVENT: return an->get_out_event_port_count();  break;
 
 	}
 

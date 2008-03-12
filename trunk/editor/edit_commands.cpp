@@ -10,6 +10,13 @@
 //
 //
 #include "edit_commands.h"
+#include "editor/update_notify.h"
+
+
+#define GRAPH_ADD_OFS 15
+
+int EditCommands::x_add_ofs=10;
+int EditCommands::y_add_ofs=10;
 
 
 EditCommands *EditCommands::singleton=NULL;
@@ -87,6 +94,54 @@ void EditCommands::audio_graph_connect(AudioGraph *p_graph,const AudioConnection
 
 }
 
+void EditCommands::audio_graph_move_node(AudioGraph *p_graph,int p_node_idx,int p_x,int p_y) {
+
+	ERR_FAIL_INDEX(p_node_idx,p_graph->get_node_count());
+	
+	AudioNode *n = p_graph->get_node(p_node_idx);
+	ERR_FAIL_COND(!n);
+
+	CommandBase *cmd_do=command( this, &EditCommands::_audio_graph_move_node, p_graph, p_node_idx, p_x,p_y ); 
+	CommandBase *cmd_undo=command( this, &EditCommands::_audio_graph_move_node, p_graph, p_node_idx, n->get_x(),n->get_y() ); 
+
+	add_action( "Audio Graph - Move Node",cmd_do, cmd_undo );
+
+}
+
+void EditCommands::_audio_graph_move_node(AudioGraph *p_graph,int p_node_idx,int p_x,int p_y) {
+
+	ERR_FAIL_INDEX(p_node_idx,p_graph->get_node_count());
+	
+	AudioNode *n = p_graph->get_node(p_node_idx);
+	ERR_FAIL_COND(!n);
+	
+	n->set_x(p_x);
+	n->set_y(p_y);
+
+	UpdateNotify::get_singleton()->audio_graph_changed();
+
+}
+
+void EditCommands::audio_graph_swap_nodes(AudioGraph *p_graph,int p_node_idx,int p_with_node_idx) {
+
+	ERR_FAIL_INDEX(p_node_idx,p_graph->get_node_count());
+	ERR_FAIL_INDEX(p_with_node_idx,p_graph->get_node_count());
+	if (p_node_idx==p_with_node_idx)
+		return;
+
+	CommandBase *cmd_do=command(this,&EditCommands::_audio_graph_swap_nodes,p_graph,p_node_idx,p_with_node_idx ); 
+	CommandBase *cmd_undo=command(this,&EditCommands::_audio_graph_swap_nodes,p_graph,p_with_node_idx,p_node_idx ); 
+
+	add_action( "Audio Graph - Swap Nodes",cmd_do, cmd_undo );
+
+}
+
+void EditCommands::_audio_graph_swap_nodes(AudioGraph *p_graph,int p_node_idx,int p_with_node_idx) {
+
+	p_graph->swap_node_indices(p_node_idx,p_with_node_idx);
+	UpdateNotify::get_singleton()->audio_graph_changed();
+	
+}
 
 /****************************/
 /**** AUDIO DRIVER PORT *****/
@@ -111,8 +166,9 @@ void EditCommands::_audio_driver_add_node(AudioGraph *p_graph,AudioDriver *p_dri
 			p_driver->add_event_output(p_create_data.index);
 	}
 
-	printf("request add at index %i\n",p_create_data.index);
 	p_graph->add_node( p_driver->get_node( p_create_data.index ), p_create_data.graph_index );
+	
+	UpdateNotify::get_singleton()->sound_driver_changed();
 	
 }
 
@@ -129,6 +185,9 @@ void EditCommands::_audio_driver_remove_node(AudioGraph *p_graph,AudioDriver *p_
 	
 	p_graph->erase_node(graph_idx);
 	p_driver->erase_node(p_at_index);
+	
+	UpdateNotify::get_singleton()->sound_driver_changed();
+	
 }
 
 void EditCommands::audio_driver_add_node(AudioGraph *p_graph,AudioDriver *p_driver,AudioDriver::NodeType p_type, int p_chans,bool p_input,int p_at_index) {
@@ -148,8 +207,17 @@ void EditCommands::audio_driver_add_node(AudioGraph *p_graph,AudioDriver *p_driv
 	CommandBase *cmd_do=command( this, &EditCommands::_audio_driver_add_node, p_graph, p_driver, pcd ); 
 	CommandBase *cmd_undo=command( this, &EditCommands::_audio_driver_remove_node, p_graph, p_driver, p_at_index ); 
 
+	begin_group("Sound Driver - Add New Node");
+
 
 	add_action( "Sound Driver - Add Port",cmd_do, cmd_undo );
+	
+	printf("Adding at %i,%i\n",x_add_ofs,y_add_ofs);
+	audio_graph_move_node(p_graph,p_at_index,x_add_ofs,y_add_ofs);
+	x_add_ofs+=GRAPH_ADD_OFS;
+	y_add_ofs+=GRAPH_ADD_OFS;
+	
+	end_group();
 	
 }
 
@@ -211,11 +279,15 @@ void EditCommands::audio_driver_remove_node(AudioGraph *p_graph,AudioDriver *p_d
 
 }
 
+
+
 void EditCommands::_audio_driver_set_node_name(AudioDriver *p_driver,int p_node,String p_name) {
 
 	ERR_FAIL_INDEX(p_node,p_driver->get_node_count());
 	
 	p_driver->set_node_name(p_node,p_name);
+
+	UpdateNotify::get_singleton()->sound_driver_changed();
 
 }
 

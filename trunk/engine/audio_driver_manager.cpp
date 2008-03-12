@@ -32,6 +32,12 @@ AudioGraph * AudioDriverManager::get_audio_graph() {
 	return audio_graph;
 }
 
+int AudioDriverManager::get_driver_count() {
+
+	return audio_driver_count;
+}
+
+
 
 void AudioDriverManager::add_driver(AudioDriver *p_audio_driver) {
 

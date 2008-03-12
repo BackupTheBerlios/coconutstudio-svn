@@ -23,6 +23,8 @@
 
 #include "gui_app/new_track_dialog.h"
 #include "gui_app/audio_settings_dialog.h"
+#include "gui_app/gui_update_notify.h"
+#include "gui_app/graph_screen.h"
 
 #include "engine/song.h"
 
@@ -81,7 +83,7 @@ class MainWindow : public Window {
 		
 //	GlobalView *global_view;
 	//TrackView *track_view;
-	//GraphView *graph_view;
+	GraphScreen *graph_screen;
 
 	NewTrackDialog *new_track_dialog;
 	AudioSettingsDialog *audio_settings_dialog;
@@ -99,6 +101,7 @@ class MainWindow : public Window {
 
 	bool quit;
 	
+	GUI_UpdateNotify update_notify;
 	EditCommands edit_comands; // singleton here
 public:
 	

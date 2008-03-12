@@ -40,6 +40,7 @@ public:
 	virtual void add_event_output(int p_at_index=-1)=0;
 	
 	virtual void erase_node(int p_index)=0;
+	virtual bool is_node_active(int p_index) const=0;
 				
 	virtual String get_node_external_connection(int p_index) const=0;
 	virtual void connect_node_to_external(int p_index,String p_to)=0;
@@ -47,13 +48,9 @@ public:
 				
 	/* ports used for settings */
 		
-	virtual int get_port_count() const=0;
-	virtual float get_port(int p_port) const=0;
-	virtual void set_port(int p_port,float p_value)=0;
-	
-	virtual AudioNode::ControlPortInfo get_port_info(int p_port) const=0;
-	virtual String get_port_text_for_value(int p_port,float p_value)=0;
-	
+	virtual int get_control_port_count() const=0;
+	virtual ControlPort* get_control_port(int p_port)=0;
+			
 	/* Idendification */
 	
 	virtual String get_name() const=0;
@@ -62,6 +59,7 @@ public:
 	virtual bool init()=0; // true of ok, false if error
 	virtual bool is_active() const=0; 
 	virtual void finish()=0;
+	virtual String get_last_error() const=0;
 	
 	virtual void lock()=0;
 	virtual void unlock()=0;

@@ -12,19 +12,15 @@
 #ifndef AUDIO_CONNECTION_H
 #define AUDIO_CONNECTION_H
 
+#include "engine/audio_node.h"
 /**
 	@author Juan Linietsky <reduzio@gmail.com>
 */
 
 struct AudioConnection {
 
-	enum Type {
-		TYPE_AUDIO,
-		TYPE_CONTROL,
-		TYPE_EVENT,
-	};
 		
-	Type type;
+	AudioNode::PortType type;
 		
 	int from_node;
 	int from_port;
@@ -33,7 +29,7 @@ struct AudioConnection {
 	
 	bool operator==(const AudioConnection& p_to) const;
 	
-	AudioConnection(Type p_type, int p_from_node, int p_from_port,int p_to_node, int p_to_port );
+	AudioConnection(AudioNode::PortType p_type, int p_from_node, int p_from_port,int p_to_node, int p_to_port );
 	AudioConnection();
 };
 	

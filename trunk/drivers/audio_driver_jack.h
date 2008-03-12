@@ -17,6 +17,7 @@
 #include "engine/audio_driver.h"
 #include <vector>
 #include <jack/jack.h>
+#include <pthread.h>
 /**
 	@author Juan Linietsky <reduzio@gmail.com>
 */
@@ -48,11 +49,7 @@ class AudioDriverJACK : public AudioDriver {
 				
 		
 		virtual int get_control_port_count() const;
-		virtual float get_control_port(int p_port) const;
-		virtual void set_control_port(int p_port,float p_value);
-		
-		virtual ControlPortInfo get_control_port_info(int p_port) const;
-		virtual String get_control_port_text_for_value(int p_port,float p_value);
+		virtual ControlPort* get_control_port(int p_port);
 			
 		/* Event port API */
 		
@@ -72,8 +69,13 @@ class AudioDriverJACK : public AudioDriver {
 		/* Process */
 		
 		virtual void process();
+		virtual void set_sampling_rate(float p_hz) {}
+		static int ofs_mix;		
+		static int cbk_nframes;		
 		
 	};
+
+
 
 	int hw_audio_in_count;
 	int hw_audio_out_count;
@@ -87,6 +89,7 @@ class AudioDriverJACK : public AudioDriver {
 	std::vector<JackNode*> ports;
 	
 	jack_client_t *client;
+	pthread_mutex_t mutex;
 
 	String error_text;
 	
@@ -124,18 +127,16 @@ public:
 	
 	virtual void erase_node(int p_index);
 				
+	virtual bool is_node_active(int p_index) const;
+				
 	virtual String get_node_external_connection(int p_index) const;
 	virtual void connect_node_to_external(int p_index,String p_to);
 	virtual std::list<String> get_connectable_external_list(NodeType p_type,bool p_input,int p_channels) const;
 				
 	/* ports used for settings */
 		
-	virtual int get_port_count() const;
-	virtual float get_port(int p_port) const;
-	virtual void set_port(int p_port,float p_value);
-	
-	virtual AudioNode::ControlPortInfo get_port_info(int p_port) const;
-	virtual String get_port_text_for_value(int p_port,float p_value);
+	virtual int get_control_port_count() const;
+	virtual ControlPort* get_control_port(int p_port);
 	
 	/* Idendification */
 	
@@ -145,6 +146,7 @@ public:
 	virtual bool init(); // true of ok, false if error
 	virtual bool is_active() const; 
 	virtual void finish();
+	virtual String get_last_error() const;
 	
 	virtual void lock();
 	virtual void unlock();

@@ -15,6 +15,7 @@
 #include "bundles/margin_group.h"
 #include "engine/audio_driver_manager.h"
 #include "widgets/separator.h"
+#include "gui_common/common_skin.h"
 
 struct AudioNodeAddDialog : public Window {
 
@@ -192,6 +193,8 @@ void AudioSettingsDialog::update_node_tree() {
 			
 		TreeItem *item = nodes->create_item(root);
 		item->set_text(0, ad->get_node(i)->get_name() );
+		item->set_bitmap(0, ad->is_node_active(i)?get_skin()->get_bitmap( BITMAP_ICON_ACTIVE ) : get_skin()->get_bitmap( BITMAP_ICON_INACTIVE ));
+		
 		
 		String type;
 		switch(ad->get_node_type(i)) {
@@ -257,7 +260,7 @@ void AudioSettingsDialog::node_request_edit(int, Rect p_rect, int p_node) {
 	std::list<String>::iterator I = connectable.begin();
 	
 	for (;I!=connectable.end();I++) {
-	
+		// using shitty syntax because of gcc 3 bug
 		Method2<int,String> m2=Method2<int,String>(this,&AudioSettingsDialog::node_connect);
 		Method1<int> m1=Method1<int>( Method2<int,String>(this,&AudioSettingsDialog::node_connect), *I);
 		Method method( m1 , p_node );
@@ -280,10 +283,58 @@ void AudioSettingsDialog::init_default() {
 		AudioDriverManager::get_driver(0)->init();
 	}
 
-	update_node_tree();
+	update_all();
 }
 
-AudioSettingsDialog::AudioSettingsDialog(Window* p_parent) : Window(p_parent,Window::MODE_POPUP,Window::SIZE_TOPLEVEL_CENTER) {
+
+void AudioSettingsDialog::update_all() {
+
+	updating=true;
+
+	driver_combo->clear();
+	for (int i=0;i<AudioDriverManager::get_driver_count();i++) {
+	
+		driver_combo->add_string( AudioDriverManager::get_driver(i)->get_name() );
+	}
+	
+	driver_combo->select( AudioDriverManager::get_current() );
+	update_node_tree();
+	 
+	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
+	
+	if (ad && ad->is_active()) {
+	
+		driver_status->set_text("Sound Driver Enabled.");
+	} else if (ad) {
+	
+		driver_status->set_text("Disabled: "+ad->get_last_error());
+	
+	}
+	updating=false;
+	
+}
+
+void AudioSettingsDialog::driver_disable() {
+
+	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
+	ERR_FAIL_COND(!ad);
+	ad->finish();
+	update_all();
+
+}
+
+void AudioSettingsDialog::driver_restart() {
+
+	AudioDriver *ad=AudioDriverManager::get_driver( AudioDriverManager::get_current() );
+	ERR_FAIL_COND(!ad);
+	if (ad->is_active())
+		ad->finish();
+	ad->init();
+	update_all();
+}
+
+
+AudioSettingsDialog::AudioSettingsDialog(Window* p_parent,GUI_UpdateNotify *p_update_notify) : Window(p_parent,Window::MODE_POPUP,Window::SIZE_TOPLEVEL_CENTER) {
 
 	WindowBox *wb = new WindowBox("Audio & MIDI Settings");
 	set_root_frame(wb);
@@ -291,7 +342,9 @@ AudioSettingsDialog::AudioSettingsDialog(Window* p_parent) : Window(p_parent,Win
 	HBoxContainer *top_hb = mg->add( new HBoxContainer );
 	driver_combo = top_hb->add( new ComboBox, 1);
 	Button *restart = top_hb->add( new Button("Restart") );
+	restart->pressed_signal.connect( this, &AudioSettingsDialog::driver_restart);
 	Button *stop = top_hb->add( new Button("Disable") );
+	stop->pressed_signal.connect( this, &AudioSettingsDialog::driver_disable);
 	tab_box = mg->add( new TabBox, 1 );
 	mg = wb->add( new MarginGroup("Driver Status:"));
 	driver_status = mg->add( new LineEdit("Disabled") );
@@ -323,6 +376,10 @@ AudioSettingsDialog::AudioSettingsDialog(Window* p_parent) : Window(p_parent,Win
 	selected_node=-1;
 	
 	connect_node_popup = new PopUpMenu(get_root());
+
+	updating=false;
+	
+	p_update_notify->sound_driver_changed_signal.connect(this, &AudioSettingsDialog::update_all);
 
 }
 

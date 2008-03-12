@@ -149,6 +149,9 @@ MainWindow::MainWindow(Painter *p_painter,Timer *p_timer,Skin *p_skin) : Window(
 	
 	main_stack = main_vbc->add( new StackContainer, 1 );
 	
+	graph_screen = main_stack->add(new GraphScreen(song.get_audio_graph()) );
+	
+	
 	hb = main_vbc->add( new HBoxContainer );
 	
 	hb->add( new Icon( get_skin()->get_bitmap( BITMAP_ICON_INFO ) ) );
@@ -178,7 +181,7 @@ MainWindow::MainWindow(Painter *p_painter,Timer *p_timer,Skin *p_skin) : Window(
 //	create_keybindings();	
 		
 	new_track_dialog = new NewTrackDialog(this);
-	audio_settings_dialog = new AudioSettingsDialog(this);
+	audio_settings_dialog = new AudioSettingsDialog(this,&update_notify);
 	quit=false;
 }
 

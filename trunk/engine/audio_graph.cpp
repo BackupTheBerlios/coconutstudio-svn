@@ -146,6 +146,7 @@ void AudioGraph::add_node(AudioNode *p_node,int p_at_index) {
 	else
 		nodes.insert( nodes.begin() + p_at_index, p_node );
 		
+	p_node->set_sampling_rate(sampling_rate);
 	
 	recompute_process_order();
 	recompute_graph();
@@ -194,15 +195,15 @@ AudioGraph::ConnectError AudioGraph::connect(const AudioConnection& p_connection
 	ERR_FAIL_INDEX_V(p_connection.to_node,(int)nodes.size(),CONNECT_INVALID_NODE);
 	switch (p_connection.type) {
 		
-		case AudioConnection::TYPE_AUDIO: {
+		case AudioNode::PORT_AUDIO: {
 			ERR_FAIL_INDEX_V(p_connection.from_port,nodes[p_connection.from_node]->get_out_audio_port_count(),CONNECT_INVALID_PORT);
 			ERR_FAIL_INDEX_V(p_connection.to_port,nodes[p_connection.to_node]->get_in_audio_port_count(),CONNECT_INVALID_PORT);
 		} break;
-		case AudioConnection::TYPE_EVENT: {
+		case AudioNode::PORT_EVENT: {
 			ERR_FAIL_INDEX_V(p_connection.from_port,nodes[p_connection.from_node]->get_out_event_port_count(),CONNECT_INVALID_PORT);
 			ERR_FAIL_INDEX_V(p_connection.to_port,nodes[p_connection.to_node]->get_in_event_port_count(),CONNECT_INVALID_PORT);
 		} break;
-		case AudioConnection::TYPE_CONTROL: {
+		case AudioNode::PORT_CONTROL: {
 			ERR_FAIL_INDEX_V(p_connection.from_port,nodes[p_connection.from_node]->get_control_port_count(),CONNECT_INVALID_PORT);
 			ERR_FAIL_INDEX_V(p_connection.to_port,nodes[p_connection.to_node]->get_control_port_count(),CONNECT_INVALID_PORT);
 		} break;
@@ -220,7 +221,7 @@ AudioGraph::ConnectError AudioGraph::connect(const AudioConnection& p_connection
 		}
 	}
 		
-	if (p_connection.type==AudioConnection::TYPE_AUDIO) {
+	if (p_connection.type==AudioNode::PORT_AUDIO) {
 		if ( nodes[p_connection.from_node]->get_out_audio_port_channel_count(p_connection.from_port) !=
 			nodes[p_connection.to_node]->get_in_audio_port_channel_count(p_connection.to_port) ) {
 			
@@ -334,6 +335,42 @@ int AudioGraph::get_node_index(AudioNode* p_fromnode) {
 	return -1;
 }
 
+void AudioGraph::swap_node_indices(int p_idx,int p_with_idx) {
+
+	ERR_FAIL_INDEX(p_idx,nodes.size());
+	ERR_FAIL_INDEX(p_with_idx,nodes.size());
+
+	if (p_idx==p_with_idx)
+		return;
+		
+	AudioControl::mutex_lock();
+		
+	SWAP(nodes[p_idx],nodes[p_with_idx]);
+	
+	for(int i=0;i<connections.size();i++) {
+	
+	
+		AudioConnection &c=connections[i];
+		
+		if (c.from_node==p_idx)
+			c.from_node=p_with_idx;
+		else if (c.from_node==p_with_idx)
+			c.from_node=p_idx;
+			
+		if (c.to_node==p_idx)
+			c.to_node=p_with_idx;
+		else if (c.to_node==p_with_idx)
+			c.to_node=p_idx;
+	}
+	
+	recompute_process_order();
+	recompute_graph();
+	
+	AudioControl::mutex_unlock();
+	
+}
+
+
 AudioGraph::ConnectError AudioGraph::get_last_conect_error() {
 	
 	return last_error;
@@ -354,10 +391,26 @@ void AudioGraph::clear() {
 
 }
 
+void AudioGraph::set_sampling_rate(float p_hz) {
+
+	AudioControl::mutex_lock();
+
+	sampling_rate=p_hz;
+	
+	for (int i=0;i<nodes.size();i++) {
+	
+		nodes[i]->set_sampling_rate(p_hz);
+	}
+
+	AudioControl::mutex_unlock();
+
+}
+
 AudioGraph::AudioGraph() {
 	
 	last_error=CONNECT_OK;
 	graph_order_valid=false;
+	sampling_rate=48000.0;
 }
 
 AudioGraph::~AudioGraph() {

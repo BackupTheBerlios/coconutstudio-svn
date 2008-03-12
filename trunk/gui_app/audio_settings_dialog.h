@@ -20,6 +20,7 @@
 #include "bundles/tab_box.h"
 #include "bundles/combo_box.h"
 #include "bundles/popup_menu.h"
+#include "gui_app/gui_update_notify.h"
 
 using namespace GUI;
 
@@ -57,11 +58,18 @@ class AudioSettingsDialog : public Window {
 	void node_request_edit(int, Rect p_rect, int p_node);
 	void node_connect(int, String p_to);	
 	
+	bool updating;
+	
+	void driver_disable();
+	void driver_restart();
+	
 public:
+
+	void update_all();
 
 	void init_default();
 
-	AudioSettingsDialog(Window* p_parent);
+	AudioSettingsDialog(Window* p_parent,GUI_UpdateNotify *p_update_notify);
 	~AudioSettingsDialog();
 
 };

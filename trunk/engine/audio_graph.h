@@ -43,6 +43,7 @@ private:
 	bool recompute_process_order(); /* return true if cyclic connection found */
 	void recompute_graph();
 		
+	float sampling_rate;
 public:
 
 	
@@ -52,6 +53,7 @@ public:
 	AudioNode* get_node(int p_fromdex); ///< Get node
 	int get_node_index(AudioNode* p_fromnode); ///< Get index of node
 	
+	void swap_node_indices(int p_idx,int p_with_idx);
 	/**
 	 * Add a node to the Audio Graph.
 	 * A list of connections can be optionally set. This is useful for Undo/Redo operations, as well sound driver switching.
@@ -109,6 +111,8 @@ public:
 	int process(int p_frames);
 	
 	void clear();
+	
+	void set_sampling_rate(float p_hz);
 	
 	AudioGraph();
 	~AudioGraph();

@@ -64,6 +64,7 @@ void AudioGraphProcess::add_node(AudioNode *p_node) {
 		
 		for (int j=0;j<port_channels;j++) {
 		
+			printf("connecting %s , chan %i to silence\n",p_node->get_name().ascii().get_data(),j);
 			p_node->connect_in_audio_port_channel_buffer(i,j,&audio_silence_buffer[0]);
 		}
 				
@@ -110,12 +111,18 @@ void AudioGraphProcess::add_connection(const AudioConnection& p_connection) {
 	switch(p_connection.type) {
 	
 	
-		case AudioConnection::TYPE_AUDIO: {
+		case AudioNode::PORT_AUDIO: {
 	
+			
+			int chans = from_node->node->get_out_audio_port_channel_count( p_connection.from_port );
+			
+			ERR_FAIL_COND( chans != 
+					to_node->node->get_in_audio_port_channel_count( p_connection.to_port ) );
+					
 			
 			if (!from_node->output_audio_buffers[p_connection.from_port]) {
 				
-				from_node->output_audio_buffers[p_connection.from_port] = new AudioBuffer;
+				from_node->output_audio_buffers[p_connection.from_port] = new AudioBuffer(chans);
 				from_node->output_audio_buffers[p_connection.from_port]->connect_out( from_node->node, p_connection.from_port );
 				
 			}
@@ -146,7 +153,7 @@ void AudioGraphProcess::add_connection(const AudioConnection& p_connection) {
 					
 					ERR_FAIL_COND( process_nodes[p_connection.to_node]->input_audio_buffers[p_connection.to_port]!=NULL);
 					
-					AudioBuffer * buff=new AudioBuffer;
+					AudioBuffer * buff=new AudioBuffer(chans);
 					process_nodes[p_connection.to_node]->input_audio_buffers[p_connection.to_port]=buff;
 					buff->connect_in( to_node->node, p_connection.to_port );		
 				}
@@ -160,7 +167,7 @@ void AudioGraphProcess::add_connection(const AudioConnection& p_connection) {
 				
 			}
 		} break;
-		case AudioConnection::TYPE_EVENT: {
+		case AudioNode::PORT_EVENT: {
 		
 			if (!from_node->output_event_buffers[p_connection.from_port]) {
 				
@@ -218,7 +225,7 @@ void AudioGraphProcess::add_connection(const AudioConnection& p_connection) {
 			}
 		
 		} break;
-		case AudioConnection::TYPE_CONTROL: {
+		case AudioNode::PORT_CONTROL: {
 		
 		
 		} break;

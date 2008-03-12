@@ -22,6 +22,9 @@
 #include "error_macros.h"
 
 
+int AudioDriverJACK::JackNode::ofs_mix=0;
+int AudioDriverJACK::JackNode::cbk_nframes=0;
+		
 void AudioDriverJACK::set_node_name(int p_index,String p_name) {
 
 	ERR_FAIL_INDEX(p_index,ports.size());
@@ -33,17 +36,18 @@ void AudioDriverJACK::set_node_name(int p_index,String p_name) {
 void AudioDriverJACK::set_audio_graph(AudioGraph * p_audio_graph) {
 
 	audio_graph=p_audio_graph;
+	audio_graph->set_sampling_rate(srate);
 }
 
 int AudioDriverJACK::JackNode::get_in_audio_port_count() const {
 
-	return (type==TYPE_AUDIO && input)?1:0;
+	return (type==TYPE_AUDIO && !input)?1:0;
 		
 }
 
 int AudioDriverJACK::JackNode::get_out_audio_port_count() const {
 
-	return (type==TYPE_AUDIO && !input)?1:0;
+	return (type==TYPE_AUDIO && input)?1:0;
 
 }
 
@@ -52,7 +56,7 @@ int AudioDriverJACK::JackNode::get_in_audio_port_channel_count(int p_port) const
 	if (type!=TYPE_AUDIO)
 		return 0;
 	
-	return input?jack_ports.size():0;
+	return !input?jack_ports.size():0;
 	
 }
 int AudioDriverJACK::JackNode::get_out_audio_port_channel_count(int p_port) const {
@@ -60,58 +64,43 @@ int AudioDriverJACK::JackNode::get_out_audio_port_channel_count(int p_port) cons
 	if (type!=TYPE_AUDIO)
 		return 0;
 		
-	return !input?jack_ports.size():0;
+	return input?jack_ports.size():0;
 
 }
 	
 void AudioDriverJACK::JackNode::connect_in_audio_port_channel_buffer(int p_port,int p_channel,float* p_buff) {
 
-	if (type!=TYPE_AUDIO || !input)
-		return;
+	printf("%p, connecting port %i, channel %i to buffer %p\n",this,p_port,p_channel,p_buff);
+	ERR_FAIL_COND(type!=TYPE_AUDIO || input);
 
 	ERR_FAIL_INDEX(p_port,1);
 	ERR_FAIL_INDEX(p_channel,audio_buffers.size());
-	audio_buffers[p_port]=p_buff;
+	audio_buffers[p_channel]=p_buff;
 
 }
 
 void AudioDriverJACK::JackNode::connect_out_audio_port_channel_buffer(int p_port,int p_channel,float* p_buff) {
 
-	if (type!=TYPE_AUDIO || input)
-		return;
+	ERR_FAIL_COND(type!=TYPE_AUDIO || !input);
 
 	ERR_FAIL_INDEX(p_port,1);
 	ERR_FAIL_INDEX(p_channel,audio_buffers.size());
-	audio_buffers[p_port]=p_buff;
+	audio_buffers[p_channel]=p_buff;
 
 }
 
 /* Control Port API */
 		
 
+
 int AudioDriverJACK::JackNode::get_control_port_count() const {
 
 	return 0;
 }
 
-float AudioDriverJACK::JackNode::get_control_port(int p_port) const {
+ControlPort* AudioDriverJACK::JackNode::get_control_port(int p_port) {
 
-	return 0;
-}
-
-void AudioDriverJACK::JackNode::set_control_port(int p_port,float p_value) {
-
-
-}
-
-AudioNode::ControlPortInfo AudioDriverJACK::JackNode::get_control_port_info(int p_port) const {
-
-	return AudioNode::ControlPortInfo();
-}
-
-String AudioDriverJACK::JackNode::get_control_port_text_for_value(int p_port,float p_value) {
-
-	return "";
+	return NULL;
 }
 	
 /* Event port API */
@@ -119,20 +108,19 @@ String AudioDriverJACK::JackNode::get_control_port_text_for_value(int p_port,flo
 int AudioDriverJACK::JackNode::get_in_event_port_count() const {
 
 
-	return (type==TYPE_EVENT && input)?1:0;
+	return (type==TYPE_EVENT && !input)?1:0;
 
 }
 
 int AudioDriverJACK::JackNode::get_out_event_port_count() const {
 
-	return (type==TYPE_EVENT && !input)?1:0;
+	return (type==TYPE_EVENT && input)?1:0;
 
 }
 	
 void AudioDriverJACK::JackNode::connect_in_event_port_buffer(int p_port,MusicEvent*p_buff) {
 
-	if (type!=TYPE_EVENT || !input)
-		return;
+	ERR_FAIL_COND(type!=TYPE_EVENT || input)
 
 	ERR_FAIL_INDEX(p_port,1);
 	event_buffer=p_buff;
@@ -140,8 +128,7 @@ void AudioDriverJACK::JackNode::connect_in_event_port_buffer(int p_port,MusicEve
 }
 void AudioDriverJACK::JackNode::connect_out_event_port_buffer(int p_port,MusicEvent* p_buff) {
 
-	if (type!=TYPE_EVENT || input)
-		return;
+	ERR_FAIL_COND(type!=TYPE_EVENT || !input);
 
 	ERR_FAIL_INDEX(p_port,1);
 	event_buffer=p_buff;
@@ -159,6 +146,52 @@ String AudioDriverJACK::JackNode::get_name() const  {
 
 void AudioDriverJACK::JackNode::process()  {
 
+	//get_node_config()
+	
+	switch(type) {
+	
+		case TYPE_AUDIO: {
+		
+			ERR_FAIL_COND( jack_ports.size() != audio_buffers.size() );
+
+			int mix_frames=get_node_config()->audio_buffer_size;
+		
+			for (int c=0;c<jack_ports.size();c++) {
+			
+			 	
+				jack_default_audio_sample_t *jack_buff = &((jack_default_audio_sample_t*)jack_port_get_buffer( jack_ports[c] , cbk_nframes ))[ofs_mix];
+				float *audio_buff=audio_buffers[c];
+			 	
+			 	if (!audio_buff) {
+			 		printf("%p no buffer %i, continuing\n",this,c);
+			 		continue;
+			 	}
+				if (input) {
+				
+					for (int i=0;i<mix_frames;i++) {
+					
+						audio_buff[i]=jack_buff[i];
+					}					
+				} else {
+			
+					for (int i=0;i<mix_frames;i++) {
+					
+						jack_buff[i]=audio_buff[i];
+					}					
+				}
+			}
+		} break;
+		case TYPE_EVENT: {
+		
+			if (input) {
+			
+			
+			} else {
+		
+		
+			}
+		} break;
+	}
 
 }
 
@@ -194,8 +227,6 @@ AudioDriver::NodeType AudioDriverJACK::get_node_type(int p_index) const {
 
 void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p_input) {
 
-	ERR_FAIL_COND(!active);
-
 	if (p_type==TYPE_AUDIO) {
 	
 		ERR_FAIL_COND(p_chans<=0 || p_chans>8);
@@ -204,7 +235,8 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 		p_chans=1;
 	}
 	
-	lock();
+	if (active)
+		lock();
 	
 	String name;
 	if (p_type==TYPE_AUDIO) {
@@ -254,71 +286,80 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 		
 			port_name+="_"+String::num(i+1);
 		}
-		/* Create Port */
-		jack_port_t* port = jack_port_register(client, port_name.ascii().get_data(), (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE, p_input?JackPortIsInput:JackPortIsOutput, 0); 
 		
-		jn->jack_ports.push_back(port);
+		if (active) {
+			/* Create Port */
+			jack_port_t* port = jack_port_register(client, port_name.ascii().get_data(), (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE, p_input?JackPortIsInput:JackPortIsOutput, 0); 
+		
+			jn->jack_ports.push_back(port);
+		} else {
+		
+			jn->jack_ports.push_back(NULL);
+		}
 		
 	}
 	
-	/* Connect to HW Ports not taken if Possible */
-	
-	const char **result,**iter;
-	
-	result = jack_get_ports (client, NULL, (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE,JackPortIsPhysical|(p_input?JackPortIsOutput:JackPortIsInput));
-	
-	
-	if (result) {
-	
-		std::vector<const char *> unclaimed_ports;
-		iter=result;
-		while(*iter) {
-			
-			bool claimed=false;
-			
-			for (int i=0;i<ports.size();i++) {
-			
-				if (ports[i]->type!=p_type)
-					continue;
-				if (ports[i]->input!=p_input)
-					continue;
+	if (active) {
+		/* Connect to HW Ports not taken if Possible */
+		
+		const char **result,**iter;
+		
+		result = jack_get_ports (client, NULL, (p_type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE,JackPortIsPhysical|(p_input?JackPortIsOutput:JackPortIsInput));
+		
+		
+		if (result) {
+		
+			std::vector<const char *> unclaimed_ports;
+			iter=result;
+			while(*iter) {
+				
+				bool claimed=false;
+				
+				for (int i=0;i<ports.size();i++) {
+				
+					if (ports[i]->type!=p_type)
+						continue;
+					if (ports[i]->input!=p_input)
+						continue;
+						
+					for (int j=0;j<ports[i]->jack_ports.size();j++) {
 					
-				for (int j=0;j<ports[i]->jack_ports.size();j++) {
-				
-				
-					if (jack_port_connected_to(ports[i]->jack_ports[j],*iter)) {
-						claimed=true;
-						break;
+					
+						if (jack_port_connected_to(ports[i]->jack_ports[j],*iter)) {
+							claimed=true;
+							break;
+						}
 					}
+					if (claimed)
+						break;
 				}
-				if (claimed)
-					break;
+				
+				if (!claimed)
+					unclaimed_ports.push_back(*iter);
+				
+				iter++;
 			}
 			
-			if (!claimed)
-				unclaimed_ports.push_back(*iter);
 			
-			iter++;
-		}
-		
-		
-		jn->connected_to="";
-		for(int i=0;i<unclaimed_ports.size();i++) {
-		
-			if (i>=jn->jack_ports.size())
-				break;
+			jn->connected_to="";
+			for(int i=0;i<unclaimed_ports.size();i++) {
 			
-			if (jn->connected_to!="")
-				jn->connected_to+=",";
+				if (i>=jn->jack_ports.size())
+					break;
+				
+				if (jn->connected_to!="")
+					jn->connected_to+=",";
+				
+				jack_connect(client, jack_port_name(jn->jack_ports[i]), unclaimed_ports[i]);
+				jn->connected_to+=unclaimed_ports[i];
+				
+			}
 			
-			jack_connect(client, jack_port_name(jn->jack_ports[i]), unclaimed_ports[i]);
-			jn->connected_to+=unclaimed_ports[i];
+			free(result);
 			
-		}
-		
-		free(result);
-		
-	}	
+		}	
+	
+	}
 	
 	/* insert */
 	
@@ -333,7 +374,8 @@ void AudioDriverJACK::add_node(int p_chans,int p_at_index,NodeType p_type,bool p
 		ports.insert(I,jn);
 	}
 		
-	unlock();
+	if (active)
+		unlock();
 
 
 }
@@ -363,6 +405,12 @@ void AudioDriverJACK::add_event_output(int p_at_index){
 
 }
 
+bool AudioDriverJACK::is_node_active(int p_index) const {
+
+	return active;
+}
+
+
 void AudioDriverJACK::erase_node(int p_index){
 
 	ERR_FAIL_COND(!active);
@@ -371,9 +419,11 @@ void AudioDriverJACK::erase_node(int p_index){
 	
 	JackNode *jn = ports[p_index];
 	
-	for (int i=0;i<jn->jack_ports.size();i++) {
-	
-		jack_port_disconnect(client,jn->jack_ports[i]);
+	if (active) {
+		for (int i=0;i<jn->jack_ports.size();i++) {
+		
+			jack_port_unregister(client,jn->jack_ports[i]);
+		}
 	}
 	
 	delete ports[p_index];
@@ -395,16 +445,18 @@ void AudioDriverJACK::connect_node_to_external(int p_index,String p_to) {
 	
 	ERR_FAIL_COND(p_to.get_slice_count(",")!=ports[p_index]->jack_ports.size());
 	
-	/* disconnect all first */
-	for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
-	
-		jack_port_disconnect( client,ports[p_index]->jack_ports[i]);
-	}
-	/* connect */
-	for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
-	
-		String dest=p_to.get_slice(",",i);
-		jack_connect(client, jack_port_name(ports[p_index]->jack_ports[i]), dest.ascii().get_data());
+	if (active) {
+		/* disconnect all first */
+		for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
+		
+			jack_port_disconnect( client,ports[p_index]->jack_ports[i]);
+		}
+		/* connect */
+		for (int i=0;i<ports[p_index]->jack_ports.size();i++) {
+		
+			String dest=p_to.get_slice(",",i);
+			jack_connect(client, jack_port_name(ports[p_index]->jack_ports[i]), dest.ascii().get_data());
+		}
 	}
 	
 	ports[p_index]->connected_to=p_to;
@@ -487,28 +539,15 @@ std::list<String> AudioDriverJACK::get_connectable_external_list(NodeType p_type
 	
 /* ports used for settings */
 	
-int AudioDriverJACK::get_port_count() const {
+int AudioDriverJACK::get_control_port_count() const {
 
 	return 0;
 }
-float AudioDriverJACK::get_port(int p_port) const {
 
-	return 0;
+ControlPort* AudioDriverJACK::get_control_port(int p_port) {
+
+	return NULL;
 }
-void AudioDriverJACK::set_port(int p_port,float p_value) {
-
-	
-}
-
-AudioNode::ControlPortInfo AudioDriverJACK::get_port_info(int p_port) const {
-
-	return AudioNode::ControlPortInfo();
-}
-String AudioDriverJACK::get_port_text_for_value(int p_port,float p_value) {
-
-	return "";
-}
-
 /* Idendification */
 
 String AudioDriverJACK::get_name() const {
@@ -519,15 +558,30 @@ String AudioDriverJACK::get_name() const {
 int AudioDriverJACK::set_sampling_rate(jack_nframes_t nframes) {
 
 	srate=nframes;
+	if (audio_graph)
+		audio_graph->set_sampling_rate(nframes);
         return 0;
 }
  
 
 int AudioDriverJACK::process(jack_nframes_t nframes) {
 
+	JackNode::ofs_mix=0;
+	JackNode::cbk_nframes=nframes;
+	
+	if (pthread_mutex_trylock(&mutex)!=0)
+		return 0; // couldn't process audio (locked)
+	
+	while (nframes) {
+		int done = audio_graph->process(nframes);
+		JackNode::ofs_mix+=done;
+		nframes-=done;
+	}		
+	
+	pthread_mutex_unlock(&mutex);
 	
         return 0;
-
+        
 }
 
 bool AudioDriverJACK::init() {
@@ -541,9 +595,9 @@ bool AudioDriverJACK::init() {
         }
 
 	/* Set Callbacks */
-	jack_set_process_callback (client, _process, this);
-        jack_set_sample_rate_callback (client, _srate, this);
-        jack_on_shutdown (client, _shutdown, this);
+	jack_set_process_callback(client, _process, this);
+        jack_set_sample_rate_callback(client, _srate, this);
+        jack_on_shutdown(client, _shutdown, this);
 
 	if (jack_activate (client)) {
 		error_text="Cannot activate client.";
@@ -552,6 +606,38 @@ bool AudioDriverJACK::init() {
 
 	error_text="JACK client active.";
 	active=true;
+
+	/* Connect all existing ports */
+	
+	for (int i=0;i<ports.size();i++) {
+	
+		int chans=ports[i]->jack_ports.size();
+		
+		for (int j=0;j<chans;j++) {
+	
+			if (ports[i]->jack_ports[j]) {
+			
+				ERR_PRINT("BUG: port exists?");
+			}
+							
+			/* Determine Name */	
+			String port_name=ports[i]->name;
+			
+			if (chans==2) {
+			
+				port_name+=(j==0)?"_L":"_R";
+			} else if (chans>2) {
+			
+				port_name+="_"+String::num(j+1);
+			}
+			
+			/* Create Port */
+			jack_port_t* port = jack_port_register(client, port_name.ascii().get_data(), (ports[i]->type==TYPE_EVENT)?JACK_DEFAULT_MIDI_TYPE:JACK_DEFAULT_AUDIO_TYPE, ports[i]->input?JackPortIsInput:JackPortIsOutput, 0); 
+		
+			ports[i]->jack_ports[j]=port;
+			
+		}
+	}
 
 	return true;
 }
@@ -562,12 +648,26 @@ bool AudioDriverJACK::is_active() const {
 void AudioDriverJACK::finish() {
 
 
-	if (active)
-		jack_client_close(client);
+	if (!active)
+		return;
+			
 		
-	for (int i=0;i<ports.size();i++)
-		delete ports[i];
-	ports.clear();
+	for (int i=0;i<ports.size();i++) {
+		
+		int chans=ports[i]->jack_ports.size();
+		
+		for (int j=0;j<chans;j++) {
+		
+			ERR_CONTINUE( !ports[i]->jack_ports[j] );
+			jack_port_unregister( client, ports[i]->jack_ports[j] );
+			ports[i]->jack_ports[j]=NULL;
+			
+		}
+	}
+	
+	jack_client_close(client);
+		
+	
 	error_text="JACK client disabled.";
 	active=false;
 	hw_audio_in_count=0;
@@ -579,13 +679,20 @@ void AudioDriverJACK::finish() {
 	
 }
 
+String AudioDriverJACK::get_last_error() const {
+
+	return error_text;
+}
+
+
 void AudioDriverJACK::lock() {
 
-
+	pthread_mutex_lock(&mutex);
 }
 void AudioDriverJACK::unlock() {
 
 	
+	pthread_mutex_unlock(&mutex);
 	
 }
 
@@ -600,6 +707,10 @@ AudioDriverJACK::AudioDriverJACK() {
 	hw_event_in_count=0;
 	hw_event_out_count=0;
 	audio_graph=0;
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&mutex,&attr);
 
 }
 

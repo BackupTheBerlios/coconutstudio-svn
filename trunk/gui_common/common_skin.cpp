@@ -72,6 +72,8 @@ void CommonSkin::set_default_extra() {
  	SET_BITMAP(BITMAP_ICON_FILE_DISK,PixmapData::get_pixmap(PIXMAP_ICON_FILE_DISK));
  	SET_BITMAP(BITMAP_ICON_FILE_FOLDER,PixmapData::get_pixmap(PIXMAP_ICON_FILE_FOLDER));
  	SET_BITMAP(BITMAP_ICON_ADD,PixmapData::get_pixmap(PIXMAP_ICON_ADD));
+ 	SET_BITMAP(BITMAP_ICON_ACTIVE,PixmapData::get_pixmap(PIXMAP_ICON_ACTIVE));
+ 	SET_BITMAP(BITMAP_ICON_INACTIVE,PixmapData::get_pixmap(PIXMAP_ICON_INACTIVE));
 
 	/* GLOBAL VIEW */
 	
@@ -245,6 +247,134 @@ void CommonSkin::set_default_extra() {
 	SET_CONSTANT( C_PLUGIN_CHOOSER_ITEM_INTERNAL_SEPARATION, 2 );
 	SET_CONSTANT( C_PLUGIN_CHOOSER_ITEM_DESCRIPTION_MARGIN,10);
       	
+      	
+      	/* AUDIO GRAPH */
+ 	SET_COLOR( COLOR_GRAPH_AUDIO_CABLE,Color(0xF1,0x6c,0x6c) );
+	SET_COLOR( COLOR_GRAPH_EVENT_CABLE,Color(0x6c,0x6c,0xF1) );
+	SET_COLOR( COLOR_GRAPH_CONTROL_CABLE,Color(0xf1,0xef,0x6c) );
+	SET_COLOR( COLOR_GRAPH_CONNECTING_CABLE, Color(250) );
+
+	
+	StyleBox sb;
+	sb = StyleBox( 1, Color(0x99,0x5c,0x5c),Color(0xF1,0x6c,0x6c),Color(0xF1,0x6c,0x6c)); 
+	sb.margins[0]=2; sb.margins[1]=2; sb.margins[2]=2; sb.margins[3]=2;
+     	SET_STYLEBOX( SB_GRAPH_AUDIO_PORT, sb );
+	sb = StyleBox( 1, Color(0x5c,0x5c,0x99), Color(0x6c,0x6c,0xF1), Color(0x6c,0x6c,0xF1) );
+	sb.margins[0]=2; sb.margins[1]=2; sb.margins[2]=2; sb.margins[3]=2;
+     	SET_STYLEBOX( SB_GRAPH_EVENT_PORT, sb);
+	sb = StyleBox( 1, Color(0x99,0x98,0x5c),Color(0xf1,0xef,0x6c),Color(0xf1,0xef,0x6c)); 
+	sb.margins[0]=2; sb.margins[1]=2; sb.margins[2]=2; sb.margins[3]=2;
+     	SET_STYLEBOX( SB_GRAPH_CONTROL_PORT, StyleBox( 1, Color(0x99,0x98,0x5c),Color(0xf1,0xef,0x6c),Color(0xf1,0xef,0x6c)) );
+
+	static const Color layer_colors[MAX_LAYER_COLORS+1]={ 
+		Color(0xff,0x74,0x74), Color(0xcc,0xff,0xe5 ),Color(0xc2,0x91,0xff ), Color(0x72,0xa4,0xff),
+		Color(0x87,0xea,0xff), Color( 0x45,0xd7,0x4c),Color(0xcc,0xf6,0x5d), Color(0xf6,0xe3,0x41),
+		Color(0xcb,0x67,0x6f), Color(0xff,0x91,0xc6),Color(0xe8,0xd0,0x90), Color(0xff,0x9a,0x23),Color(0xA0,0xA0,0xA0)
+	};
+	
+	
+	Color dark_layer_colors[MAX_LAYER_COLORS+1];
+	Color grayed_layer_colors[MAX_LAYER_COLORS+1];
+	
+	
+	for (int i=0;i<MAX_LAYER_COLORS+1;i++) {
+	
+		Color c = layer_colors[i];
+  		dark_layer_colors[i]=Color( c.r / 4 , c.g / 4, c.b / 4 );
+  		int gray = ((int)c.r+(int)c.g+(int)c.b) / 3;
+  		grayed_layer_colors[i] = Color( (c.r+gray)/4, (c.g+gray)/4, (c.b+gray)/4 );  		  		
+	}
+	
+	SET_COLOR( COLOR_LAYER_0, layer_colors[0] );
+	SET_COLOR( COLOR_LAYER_1, layer_colors[1] );
+	SET_COLOR( COLOR_LAYER_2, layer_colors[2] );
+	SET_COLOR( COLOR_LAYER_3, layer_colors[3] );
+	SET_COLOR( COLOR_LAYER_4, layer_colors[4] );
+	SET_COLOR( COLOR_LAYER_5, layer_colors[5] );
+	SET_COLOR( COLOR_LAYER_6, layer_colors[6] );
+	SET_COLOR( COLOR_LAYER_7, layer_colors[7] );
+	SET_COLOR( COLOR_LAYER_8, layer_colors[8] );
+	SET_COLOR( COLOR_LAYER_9, layer_colors[9] );
+	SET_COLOR( COLOR_LAYER_10, layer_colors[10] );
+	SET_COLOR( COLOR_LAYER_11, layer_colors[11] );
+	SET_COLOR( COLOR_LAYER_ALL, layer_colors[12] );
+	
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_0, StyleBox(1,grayed_layer_colors[0],layer_colors[0],layer_colors[0]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_1, StyleBox(1,grayed_layer_colors[1],layer_colors[1],layer_colors[1]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_2, StyleBox(1,grayed_layer_colors[2],layer_colors[2],layer_colors[2]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_3, StyleBox(1,grayed_layer_colors[3],layer_colors[3],layer_colors[3]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_4, StyleBox(1,grayed_layer_colors[4],layer_colors[4],layer_colors[4]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_5, StyleBox(1,grayed_layer_colors[5],layer_colors[5],layer_colors[5]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_6, StyleBox(1,grayed_layer_colors[6],layer_colors[6],layer_colors[6]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_7, StyleBox(1,grayed_layer_colors[7],layer_colors[7],layer_colors[7]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_8, StyleBox(1,grayed_layer_colors[8],layer_colors[8],layer_colors[8]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_9, StyleBox(1,grayed_layer_colors[9],layer_colors[9],layer_colors[9]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_10, StyleBox(1,grayed_layer_colors[10],layer_colors[10],layer_colors[10]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_11, StyleBox(1,grayed_layer_colors[11],layer_colors[11],layer_colors[11]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_NODE_ALL, StyleBox(1,grayed_layer_colors[12],layer_colors[12],layer_colors[12]) );
+     	
+     	for (int i=0;i<(MAX_LAYER_COLORS+1);i++) {
+     	
+     		StyleBox sb = get_stylebox( SB_LAYER_COLOR_NODE_0+i );
+     		sb.margins[0]=4; sb.margins[1]=2; sb.margins[2]=4; sb.margins[3]=2;
+     		set_stylebox( SB_LAYER_COLOR_NODE_0+i, sb );
+     	}
+     	
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_0, StyleBox(0,dark_layer_colors[0],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_1, StyleBox(0,dark_layer_colors[1],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_2, StyleBox(0,dark_layer_colors[2],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_3, StyleBox(0,dark_layer_colors[3],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_4, StyleBox(0,dark_layer_colors[4],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_5, StyleBox(0,dark_layer_colors[5],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_6, StyleBox(0,dark_layer_colors[6],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_7, StyleBox(0,dark_layer_colors[7],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_8, StyleBox(0,dark_layer_colors[8],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_9, StyleBox(0,dark_layer_colors[9],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_10, StyleBox(0,dark_layer_colors[10],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_11, StyleBox(0,dark_layer_colors[11],Color(0),Color(0)) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_BG_ALL, StyleBox(0,dark_layer_colors[12],Color(0),Color(0)) );
+     	
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_0, StyleBox(1,grayed_layer_colors[0],layer_colors[0],layer_colors[0]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_1, StyleBox(1,grayed_layer_colors[1],layer_colors[1],layer_colors[1]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_2, StyleBox(1,grayed_layer_colors[2],layer_colors[2],layer_colors[2]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_3, StyleBox(1,grayed_layer_colors[3],layer_colors[3],layer_colors[3]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_4, StyleBox(1,grayed_layer_colors[4],layer_colors[4],layer_colors[4]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_5, StyleBox(1,grayed_layer_colors[5],layer_colors[5],layer_colors[5]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_6, StyleBox(1,grayed_layer_colors[6],layer_colors[6],layer_colors[6]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_7, StyleBox(1,grayed_layer_colors[7],layer_colors[7],layer_colors[7]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_8, StyleBox(1,grayed_layer_colors[8],layer_colors[8],layer_colors[8]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_9, StyleBox(1,grayed_layer_colors[9],layer_colors[9],layer_colors[9]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_10, StyleBox(1,grayed_layer_colors[10],layer_colors[10],layer_colors[10]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_11, StyleBox(1,grayed_layer_colors[11],layer_colors[11],layer_colors[11]) );
+     	SET_STYLEBOX( SB_LAYER_COLOR_WINDOW_ALL, StyleBox(1,grayed_layer_colors[11],layer_colors[11],layer_colors[11]) );
+	
+	SET_FONT( FONT_GRAPH_PORT_PLUG, 0 );
+	SET_FONT( FONT_GRAPH_NODE_NAME, 0 );
+
+	SET_BITMAP(BITMAP_GRAPH_PLUG,PixmapData::get_pixmap(PIXMAP_GRAPH_PLUG));
+	SET_BITMAP(BITMAP_LAYER_0,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_0));
+	SET_BITMAP(BITMAP_LAYER_1,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_1));
+	SET_BITMAP(BITMAP_LAYER_2,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_2));
+	SET_BITMAP(BITMAP_LAYER_3,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_3));
+	SET_BITMAP(BITMAP_LAYER_4,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_4));
+	SET_BITMAP(BITMAP_LAYER_5,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_5));
+	SET_BITMAP(BITMAP_LAYER_6,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_6));
+	SET_BITMAP(BITMAP_LAYER_7,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_7));
+	SET_BITMAP(BITMAP_LAYER_8,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_8));
+	SET_BITMAP(BITMAP_LAYER_9,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_9));
+	SET_BITMAP(BITMAP_LAYER_10,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_10));
+	SET_BITMAP(BITMAP_LAYER_11,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_11));
+	SET_BITMAP(BITMAP_LAYER_ALL,PixmapData::get_pixmap(PIXMAP_ICON_LAYER_ALL));
+
+
+
+	SET_CONSTANT( C_GRAPH_PORT_VSPACING, 2);
+	SET_CONSTANT( C_GRAPH_PORT_HSPACING, 2);
+	
+	SET_COLOR(COLOR_GRAPH_NODE_NAME,Color(255));
+	SET_COLOR(COLOR_GRAPH_NODE_PORT,Color(190));
+	
+	
 }
 	
 	
